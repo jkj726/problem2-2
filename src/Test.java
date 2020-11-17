@@ -108,7 +108,7 @@ public class   Test {
         int status;
         Pair<Integer, List<Bidding>> bidResult;
 
-        bidResult = server.retrieveBids("2010-22221");
+        bidResult = server.retrieveBids("./2010-22221");
         printOX("2.2.1 retrieve bidding without any bidding in current execution : ",
                 checkUnorderedBiddingListWithIDArray(bidResult.value, new int[]{2, 8, 9, 10}, new int[]{17, 18, 18, 18}));
 
@@ -166,6 +166,7 @@ public class   Test {
         bidResult = server.retrieveBids("2010-22221");
         printOX("2.2.12 check if bidding 0 mileage to a new course does nothing : ",
                 status == ErrorCode.SUCCESS && bidResult.key == ErrorCode.SUCCESS && checkUnorderedBiddingListWithIDArray(bidResult.value, new int[]{7, 8, 9, 10}, new int[]{14, 18, 5, 18}));
+
     }
 
     static void Problem2_3TestCase() {

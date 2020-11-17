@@ -16,8 +16,12 @@ public class Server {
     public List<Course> search(Map<String,Object> searchConditions, String sortCriteria){
         // TODO Problem 2-1
 
-
-        List<Course> allCourseList = readCourses("data/Courses/2020_Spring/");
+        List<Course> allCourseList = new ArrayList<>();
+        try {
+        allCourseList = readCourses("data/Courses/2020_Spring/");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         List<Course> searchResult = new ArrayList<>();
 
 
@@ -75,7 +79,13 @@ public class Server {
 
     public int bid(int courseId, int mileage, String userId){
         // TODO Problem 2-2
-        List<Course> allCourseList = readCourses("data/Courses/2020_Spring/");
+        List<Course> allCourseList = new ArrayList<>();
+        boolean isIOE= false;
+        try {
+        allCourseList = readCourses("data/Courses/2020_Spring/");
+        } catch (IOException e) {
+            isIOE = true;
+        }
         String userIdPath = String.format("data/Users/%s/",userId);
 
         //USERID_NOT_FOUND = -61
@@ -96,16 +106,17 @@ public class Server {
         //NEGATIVE_MILEAGE = -43
         if (mileage < 0) return ErrorCode.NEGATIVE_MILEAGE;
 
-        //OVER_MAX_COURSE_MILEAGE = -43
+        //OVER_MAX_COURSE_MILEAGE = -42
         if (mileage > Config.MAX_MILEAGE_PER_COURSE) return ErrorCode.OVER_MAX_COURSE_MILEAGE;
 
         //OVER_MAX_MILEAGE=-41
         int sum = 0;
         Pair<Integer,List<Bidding>> pastBid = retrieveBids(userId);
+        if (pastBid.key == ErrorCode.IO_ERROR) {
+            isIOE = true;
+        }
         List<Bidding> pastBiddingList = pastBid.value;
-        if (pastBid.key == ErrorCode.USERID_NOT_FOUND || pastBid.key == ErrorCode.IO_ERROR){
-            sum = 0;
-        } else {
+
             // Place a bid on a memory
             boolean didBidBefore = false, overWrite = false;
             Iterator<Bidding> iterator = pastBiddingList.iterator();
@@ -135,7 +146,11 @@ public class Server {
             for (int i = 0; i < pastBiddingList.size(); i++) {
                 sum += pastBiddingList.get(i).mileage;
             }
+
+        if (pastBid.key == ErrorCode.USERID_NOT_FOUND || pastBid.key == ErrorCode.IO_ERROR){
+            sum = 0;
         }
+
         if (sum > Config.MAX_MILEAGE){
             return ErrorCode.OVER_MAX_MILEAGE;
         }
@@ -144,6 +159,10 @@ public class Server {
         String userBidIdPath = String.format("data/Users/%s/bid.txt", userId);
         File userBid = new File(userBidIdPath);
         if(userBid.isFile() == false){
+            System.out.println("No userbid");
+            return ErrorCode.IO_ERROR;
+        }
+        if (isIOE == true) {
             return ErrorCode.IO_ERROR;
         }
 
@@ -162,7 +181,6 @@ public class Server {
         }
 
         return ErrorCode.SUCCESS;
-
     }
 
     public Pair<Integer,List<Bidding>> retrieveBids(String userId){
@@ -172,6 +190,10 @@ public class Server {
         String userBidIdPath = String.format("data/Users/%s/bid.txt", userId);
         List<Bidding> userBiddingList = new ArrayList<>();
         File userBid = new File(userBidIdPath);
+
+        if(!Arrays.asList(userBid.list()).contains(userId)){
+            return new Pair<>(ErrorCode.USERID_NOT_FOUND, userBiddingList);
+        }
 
         if(new File(userIdPath).isDirectory() == false){
             return new Pair<>(ErrorCode.USERID_NOT_FOUND, userBiddingList);
@@ -198,7 +220,13 @@ public class Server {
 
     public boolean confirmBids(){
         // TODO Problem 2-3
-        List<Course> allCourseList = readCourses("data/Courses/2020_Spring/");
+        List<Course> allCourseList = new ArrayList<>();
+        try {
+        allCourseList = readCourses("data/Courses/2020_Spring/");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
         List<User> userList = new ArrayList<>();
 
         String usersPath = "data/Users/";
@@ -284,7 +312,14 @@ public class Server {
         // TODO Problem 2-3
         String userIdPath = String.format("data/Users/%s/", userId);
         String userBidIdPath = String.format("data/Users/%s/courses.txt", userId);
-        List<Course> allCourseList = readCourses("data/Courses/2020_Spring/");
+        List<Course> allCourseList = new ArrayList<>();
+        try {
+            allCourseList = readCourses("data/Courses/2020_Spring/");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return new Pair<>(ErrorCode.IO_ERROR,new ArrayList<>());
+        }
+
         List<Course> userCourseList = new ArrayList<>();
         File userBid = new File(userBidIdPath);
 
@@ -320,7 +355,7 @@ public class Server {
 //        return new Pair<>(ErrorCode.IO_ERROR,new ArrayList<>());
     }
 
-    List<Course> readCourses (String courseDataPath) {
+    List<Course> readCourses (String courseDataPath) throws IOException {
         List<Course> courseList = new ArrayList<>();
 
         File collegePath = new File(courseDataPath);
@@ -342,6 +377,7 @@ public class Server {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                    throw e;
                 }
             }
         }
